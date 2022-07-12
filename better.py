@@ -65,7 +65,7 @@ def clear():
     st.session_state['cache'] = set()
     
 def main():
-    bing()
+    ding()
     count = st_autorefresh(interval=20000, limit=3*60*6, key="fizzbuzzcounter")
     
     print("entry")
