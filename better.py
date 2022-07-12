@@ -4,8 +4,22 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 from datetime import time as datetime
 
-headers = st.secrets["headers"]
-api_url = st.secrets["api_url"]
+headers = {
+    'authority': 'better-admin.org.uk',
+    'accept': 'application/json',
+    'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
+    'dnt': '1',
+    'origin': 'https://bookings.better.org.uk',
+    'referer': 'https://bookings.better.org.uk/location/west-reservoir-centre/open-water-swimming/<REPLACEME>/by-time',
+    'sec-ch-ua': '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"macOS"',
+    'sec-fetch-dest': 'empty',
+    'sec-fetch-mode': 'cors',
+    'sec-fetch-site': 'cross-site',
+    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
+}
+api_url = 'https://better-admin.org.uk/api/activities/venue/west-reservoir-centre/activity/open-water-swimming/times'
 
 def check_swimming(date, headers, api_url):
     params = {'date' : date}
