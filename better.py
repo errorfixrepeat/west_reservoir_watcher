@@ -46,7 +46,7 @@ def check_for_changes(date="2022-07-03", headers=headers, api_url=api_url):
     if cache.union(set(times)).difference(cache):
         ding()
         print(times)
-        st.session_state['cache'] = set(times)
+    st.session_state['cache'] = set(times)
     st.session_state['last_update'] = time.strftime('%H:%M', time.localtime(time.time()))
 
 def ding():
