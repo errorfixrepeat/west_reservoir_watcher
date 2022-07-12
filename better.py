@@ -4,6 +4,9 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 from datetime import time as datetime
 
+headers = st.secrets["headers"]
+api_url = st.secrets["api_url"]
+
 def check_swimming(date, headers, api_url):
     params = {'date' : date}
     headers['referer'] = headers['referer'].replace("<REPLACEME>", date)
