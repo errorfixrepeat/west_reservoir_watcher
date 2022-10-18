@@ -77,7 +77,7 @@ def main():
     check_for_changes(date=str(date), headers=headers, api_url=api_url)
     
     st.markdown('#')
-    status = st.write(f'Available times: {" ".join(st.session_state["cache"])}')
+    status = st.write(f'Available times: {" ".join(sorted(st.session_state["cache"], key = lambda x: x.split(":")[0]*60+x.split(":")[1]))}')
     
     st.markdown('#')
     st.markdown('#')
