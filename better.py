@@ -64,8 +64,8 @@ def ding():
 
 def clear():
     st.session_state['cache'] = set()
-    
- def get_current_bst_time():
+
+def get_current_bst_time():
     # Get the current UTC time
     utc_now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
 
