@@ -3,6 +3,7 @@ import time
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 from datetime import time as datetime
+import pytz
 
 headers = {
     'authority': 'better-admin.org.uk',
@@ -47,7 +48,7 @@ def check_for_changes(date="2022-07-03", headers=headers, api_url=api_url):
         ding()
         print(times)
     st.session_state['cache'] = set(times)
-    st.session_state['last_update'] = time.strftime('%H:%M', time.localtime(time.time()))
+    st.session_state['last_update'] = get_current_bst_time()
 
 def ding():
     html_string = """
@@ -64,6 +65,19 @@ def ding():
 def clear():
     st.session_state['cache'] = set()
     
+ def get_current_bst_time():
+    # Get the current UTC time
+    utc_now = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
+
+    # Define the Europe/London timezone
+    london_timezone = pytz.timezone('Europe/London')
+
+    # Convert UTC time to London time (which will be BST if applicable)
+    bst_now = utc_now.astimezone(london_timezone)
+
+    # Format the time
+    return bst_now.strftime('%H:%M')
+     
 def main():
     count = st_autorefresh(interval=20000, limit=3*60*6, key="fizzbuzzcounter")
     
