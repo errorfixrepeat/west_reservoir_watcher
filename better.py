@@ -2,7 +2,7 @@ import requests
 import time
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
-from datetime import time as datetime
+import datetime
 import pytz
 
 headers = {
