@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>West Reservoir Watcher</title>
+
+  <!-- React + Babel loaded from CDN — no npm/Node required -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #e8f4fd;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 2rem 1rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      padding: 2rem;
+      max-width: 520px;
+      width: 100%;
+    }
+
+    h1 { font-size: 1.5rem; font-weight: 700; color: #1a56a4; }
+    .subtitle { color: #718096; font-size: 0.9rem; margin-top: 0.25rem; margin-bottom: 1.75rem; }
+
+    label { display: block; font-size: 0.85rem; font-weight: 600; color: #4a5568; margin-bottom: 0.4rem; }
+
+    input[type="date"] {
+      width: 100%;
+      padding: 0.55rem 0.8rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 1rem;
+      color: #2d3748;
+      outline: none;
+    }
+    input[type="date"]:focus { border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66,153,225,0.2); }
+
+    .btn-row { display: flex; gap: 0.6rem; margin-top: 0.75rem; }
+
+    .btn {
+      padding: 0.45rem 1rem;
+      background: #ebf4ff;
+      border: 1px solid #bee3f8;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: #2b6cb0;
+      font-weight: 600;
+    }
+    .btn:hover { background: #bee3f8; }
+    .btn.secondary { background: #f7fafc; border-color: #e2e8f0; color: #718096; font-weight: 400; }
+    .btn.secondary:hover { background: #e2e8f0; }
+
+    .notif-row {
+      margin-top: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .notif-btn {
+      font-size: 0.82rem;
+      color: #718096;
+      background: none;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.35rem 0.75rem;
+      cursor: pointer;
+    }
+    .notif-btn:hover { background: #f7fafc; }
+    .notif-ok { font-size: 0.82rem; color: #38a169; }
+
+    .times-box {
+      margin-top: 1.75rem;
+      padding: 1.1rem;
+      background: #f7fafc;
+      border-radius: 10px;
+      border-left: 4px solid #4299e1;
+    }
+    .times-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #a0aec0;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.6rem;
+    }
+    .times-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .time-chip {
+      background: #ebf8ff;
+      color: #2b6cb0;
+      padding: 0.3rem 0.85rem;
+      border-radius: 20px;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    .no-times { color: #a0aec0; font-style: italic; font-size: 0.9rem; }
+
+    .error-box {
+      margin-top: 1rem;
+      padding: 0.8rem 1rem;
+      background: #fff5f5;
+      border-radius: 8px;
+      border-left: 4px solid #fc8181;
+      color: #c53030;
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+
+    .footer {
+      margin-top: 1.5rem;
+      font-size: 0.78rem;
+      color: #a0aec0;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .pulse {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #68d391;
+      flex-shrink: 0;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    const API_URL =
+      'https://better-admin.org.uk/api/activities/venue/west-reservoir-centre/activity/open-water-swimming/times';
+
+    function todayISO() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function getLondonTime() {
+      return new Date().toLocaleTimeString('en-GB', {
+        timeZone: 'Europe/London',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+
+    function playDing() {
+      const audio = new Audio(
+        'https://www.orangefreesounds.com/wp-content/uploads/2022/04/Small-bell-ringing-short-sound-effect.mp3'
+      );
+      audio.play().catch(() => {});
+    }
+
+    function sendBrowserNotification(newTimes) {
+      if (Notification.permission === 'granted') {
+        new Notification('West Reservoir Watcher', {
+          body: `New slot${newTimes.length > 1 ? 's' : ''} available: ${newTimes.join(', ')}`,
+          icon: 'https://bookings.better.org.uk/favicon.ico',
+        });
+      }
+    }
+
+    function App() {
+      const [date, setDate] = useState(todayISO());
+      const [times, setTimes] = useState([]);
+      const [lastUpdate, setLastUpdate] = useState(null);
+      const [error, setError] = useState(null);
+      const [notifPerm, setNotifPerm] = useState(
+        'Notification' in window ? Notification.permission : 'unsupported'
+      );
+      const knownTimes = useRef(new Set());
+
+      const requestNotifications = async () => {
+        if (!('Notification' in window)) return;
+        const result = await Notification.requestPermission();
+        setNotifPerm(result);
+      };
+
+      const fetchSlots = useCallback(async (selectedDate) => {
+        setError(null);
+        try {
+          const res = await fetch(`${API_URL}?date=${selectedDate}`, {
+            headers: { accept: 'application/json' },
+          });
+          if (!res.ok) throw new Error(`Server returned HTTP ${res.status}`);
+
+          const json = await res.json();
+          let items = json.data;
+          if (!Array.isArray(items)) items = Object.values(items);
+
+          const available = items
+            .filter(item => item.action_to_show?.status != null)
+            .map(item => item.starts_at.format_24_hour)
+            .sort();
+
+          // Alert on newly-appeared slots
+          const newOnes = available.filter(t => !knownTimes.current.has(t));
+          if (newOnes.length > 0) {
+            playDing();
+            sendBrowserNotification(newOnes);
+          }
+
+          knownTimes.current = new Set(available);
+          setTimes(available);
+          setLastUpdate(getLondonTime());
+        } catch (err) {
+          const isCors =
+            err.message === 'Failed to fetch' || err.message.includes('NetworkError');
+          setError(
+            isCors
+              ? 'CORS blocked: the API rejected the browser request. ' +
+                'This is a known limitation of static pages calling this API. ' +
+                'As a workaround, use a GitHub Actions scheduled job to fetch data and commit it as JSON.'
+              : `Fetch error: ${err.message}`
+          );
+        }
+      }, []);
+
+      // Initial fetch + auto-refresh every 20 seconds
+      useEffect(() => {
+        fetchSlots(date);
+        const id = setInterval(() => fetchSlots(date), 20_000);
+        return () => clearInterval(id);
+      }, [date, fetchSlots]);
+
+      function handleDateChange(e) {
+        knownTimes.current = new Set();
+        setTimes([]);
+        setDate(e.target.value);
+      }
+
+      function handleClear() {
+        knownTimes.current = new Set();
+        setTimes([]);
+        fetchSlots(date);
+      }
+
+      return (
+        <div className="card">
+          <h1>West Reservoir Watcher</h1>
+          <p className="subtitle">Open water swimming · auto-refreshes every 20 s</p>
+
+          <label htmlFor="date">Select date</label>
+          <input type="date" id="date" value={date} onChange={handleDateChange} />
+
+          <div className="btn-row">
+            <button className="btn" onClick={() => fetchSlots(date)}>Refresh now</button>
+            <button className="btn secondary" onClick={handleClear}>Clear cache</button>
+          </div>
+
+          <div className="notif-row">
+            {notifPerm === 'granted' ? (
+              <span className="notif-ok">✓ Browser notifications on</span>
+            ) : notifPerm === 'unsupported' ? (
+              <span style={{ fontSize: '0.82rem', color: '#a0aec0' }}>Notifications not supported in this browser</span>
+            ) : (
+              <button className="notif-btn" onClick={requestNotifications}>
+                🔔 Enable browser notifications
+              </button>
+            )}
+          </div>
+
+          <div className="times-box">
+            <div className="times-title">Available slots</div>
+            {times.length > 0 ? (
+              <div className="times-list">
+                {times.map(t => <span key={t} className="time-chip">{t}</span>)}
+              </div>
+            ) : (
+              <span className="no-times">No available slots found</span>
+            )}
+          </div>
+
+          {error && (
+            <div className="error-box">
+              <strong>Error</strong><br />{error}
+            </div>
+          )}
+
+          <div className="footer">
+            {lastUpdate && (
+              <>
+                <span className="pulse" />
+                Last refreshed {lastUpdate} (London time)
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
