@@ -148,6 +148,11 @@
       });
     }
 
+    // Register service worker (required for notifications on mobile Chrome)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+
     function playDing() {
       const audio = new Audio(
         'https://www.orangefreesounds.com/wp-content/uploads/2022/04/Small-bell-ringing-short-sound-effect.mp3'
@@ -155,16 +160,22 @@
       audio.play().catch(() => {});
     }
 
-    function sendBrowserNotification(newTimes) {
-      if (Notification.permission === 'granted') {
-        new Notification('West Reservoir Watcher', {
-          body: `New slot${newTimes.length > 1 ? 's' : ''} available: ${newTimes.join(', ')}`,
-          icon: 'https://bookings.better.org.uk/favicon.ico',
-        });
+    async function sendBrowserNotification(newTimes) {
+      if (Notification.permission !== 'granted') return;
+      const opts = {
+        body: `New slot${newTimes.length > 1 ? 's' : ''} available: ${newTimes.join(', ')}`,
+        icon: 'https://bookings.better.org.uk/favicon.ico',
+      };
+      try {
+        // Desktop browsers support this directly
+        new Notification('West Reservoir Watcher', opts);
+      } catch {
+        // Mobile Chrome requires going via the service worker
+        const reg = await navigator.serviceWorker?.ready;
+        reg?.showNotification('West Reservoir Watcher', opts);
       }
     }
 
-    // Replace this with your Worker URL after deploying on Cloudflare
     const WORKER_URL = 'https://snowy-hat-1ef4.colmsjunk.workers.dev';
 
     function App() {
@@ -172,6 +183,7 @@
       const [times, setTimes] = useState([]);
       const [lastUpdate, setLastUpdate] = useState(null);
       const [fetchError, setFetchError] = useState(null);
+      const [alertsOn, setAlertsOn] = useState(true);
       const [notifPerm, setNotifPerm] = useState(
         'Notification' in window ? Notification.permission : 'unsupported'
       );
@@ -183,7 +195,7 @@
         setNotifPerm(result);
       };
 
-      const fetchSlots = useCallback(async (selectedDate) => {
+      const fetchSlots = useCallback(async (selectedDate, alerts) => {
         setFetchError(null);
         try {
           const res = await fetch(`${WORKER_URL}?date=${selectedDate}`);
@@ -199,7 +211,7 @@
             .sort();
 
           const newOnes = available.filter(t => !knownTimes.current.has(t));
-          if (newOnes.length > 0) {
+          if (newOnes.length > 0 && alerts) {
             playDing();
             sendBrowserNotification(newOnes);
           }
@@ -212,9 +224,13 @@
         }
       }, []);
 
+      // alertsOnRef lets the interval always see the latest alertsOn value
+      const alertsOnRef = useRef(alertsOn);
+      useEffect(() => { alertsOnRef.current = alertsOn; }, [alertsOn]);
+
       useEffect(() => {
-        fetchSlots(date);
-        const id = setInterval(() => fetchSlots(date), 20_000);
+        fetchSlots(date, alertsOnRef.current);
+        const id = setInterval(() => fetchSlots(date, alertsOnRef.current), 20_000);
         return () => clearInterval(id);
       }, [date, fetchSlots]);
 
@@ -233,12 +249,18 @@
           <input type="date" id="date" value={date} onChange={handleDateChange} />
 
           <div className="btn-row">
-            <button className="btn" onClick={() => fetchSlots(date)}>Check now</button>
+            <button className="btn" onClick={() => fetchSlots(date, alertsOnRef.current)}>Check now</button>
           </div>
 
           <div className="notif-row">
             {notifPerm === 'granted' ? (
-              <span className="notif-ok">✓ Browser notifications on</span>
+              <button
+                className="notif-btn"
+                onClick={() => setAlertsOn(v => !v)}
+                style={{ color: alertsOn ? '#2b6cb0' : '#a0aec0' }}
+              >
+                {alertsOn ? '🔔 Alerts on' : '🔕 Alerts off'}
+              </button>
             ) : notifPerm === 'unsupported' ? null : (
               <button className="notif-btn" onClick={requestNotifications}>
                 🔔 Enable browser notifications
