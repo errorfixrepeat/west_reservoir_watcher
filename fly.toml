@@ -1,10 +1,21 @@
-app = "west-reservoir-bot"
-primary_region = "lhr"
+# fly.toml app configuration file generated for west-reservoir-watcher on 2026-05-26T16:39:45Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'west-reservoir-watcher'
+primary_region = 'ams'
 
 [build]
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = false
+  auto_stop_machines = 'off'
   min_machines_running = 1
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 256
