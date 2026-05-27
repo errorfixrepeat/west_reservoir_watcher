@@ -13,6 +13,7 @@ primary_region = 'ams'
   force_https = true
   auto_stop_machines = 'off'
   min_machines_running = 1
+  max_machines_running = 1
 
 [[vm]]
   size = 'shared-cpu-1x'
