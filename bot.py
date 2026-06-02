@@ -41,7 +41,7 @@ HELP = (
 # date -> {'known': set of times, 'from': '12:00' or None, 'to': '14:30' or None}
 watching = {}
 watching_lock = threading.Lock()
-polling = False
+stop_event = threading.Event()
 poll_thread = None
 
 
@@ -69,12 +69,13 @@ def send_whatsapp(msg):
 
 
 def poll_loop():
-    global polling
-    while polling:
+    while not stop_event.is_set():
         with watching_lock:
             snapshot = {d: dict(v) for d, v in watching.items()}
 
         for date, cfg in snapshot.items():
+            if stop_event.is_set():
+                return
             try:
                 all_slots = fetch_slots(date)
                 slots = [s for s in all_slots if in_range(s, cfg['from'], cfg['to'])]
@@ -91,7 +92,7 @@ def poll_loop():
             except Exception as e:
                 print(f"Poll error for {date}: {e}")
 
-        time.sleep(20)
+        stop_event.wait(20)
 
 
 def parse_date(text):
@@ -141,7 +142,7 @@ def webhook():
     cmd  = body.lower()
     resp = MessagingResponse()
 
-    global polling, poll_thread
+    global poll_thread
 
     if cmd.startswith('watch'):
         arg = body[5:].strip()
@@ -152,8 +153,8 @@ def webhook():
         else:
             with watching_lock:
                 watching[date] = {'known': set(), 'from': from_time, 'to': to_time}
-            if not polling:
-                polling = True
+            if poll_thread is None or not poll_thread.is_alive():
+                stop_event.clear()
                 poll_thread = threading.Thread(target=poll_loop, daemon=True)
                 poll_thread.start()
 
@@ -168,13 +169,13 @@ def webhook():
             with watching_lock:
                 watching.pop(date, None)
                 if not watching:
-                    polling = False
+                    stop_event.set()
             resp.message(f"Stopped watching {date}.")
         else:
             resp.message("Couldn't parse that date.")
 
     elif cmd == 'pause':
-        polling = False
+        stop_event.set()
         with watching_lock:
             watching.clear()
         resp.message("Paused. Send 'watch DATE' to start again.")
