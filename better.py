@@ -20,7 +20,7 @@ headers = {
     'sec-fetch-site': 'cross-site',
     'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
 }
-api_url = 'https://better-admin.org.uk/api/activities/venue/west-reservoir-centre/activity/open-water-swimming/times'
+api_url = 'https://better-admin.org.uk/api/activities/venue/west-reservoir-centre/activity/open-water-swimming/v2/times'
 
 def check_swimming(date, headers, api_url):
     params = {'date' : date}
