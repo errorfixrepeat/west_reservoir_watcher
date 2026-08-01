@@ -54,7 +54,7 @@ def fetch_slots(date):
     return sorted(
         item['starts_at']['format_24_hour']
         for item in data
-        if item.get('action_to_show', {}).get('status') is not None
+        if item.get('action_to_show', {}).get('status') is "BOOK"
     )
 
 
