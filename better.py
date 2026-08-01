@@ -36,7 +36,7 @@ def check_swimming(date, headers, api_url):
 def find_available(response_json):
     if isinstance(response_json["data"], dict):
         response_json["data"] = list(response_json["data"].values())
-    return [_ for _ in response_json["data"] if _['action_to_show']['status'] is not None]
+    return [_ for _ in response_json["data"] if _['action_to_show']['status'] == 'BOOK']
 
 def check_for_changes(date="2022-07-03", headers=headers, api_url=api_url):
     cache = st.session_state['cache']
