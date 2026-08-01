@@ -19,7 +19,7 @@ client = Client(ACCOUNT_SID, AUTH_TOKEN)
 
 API_URL = (
     'https://better-admin.org.uk/api/activities/venue/'
-    'west-reservoir-centre/activity/open-water-swimming/times'
+    'west-reservoir-centre/activity/open-water-swimming/v2/times'
 )
 HEADERS = {
     'accept': 'application/json',
